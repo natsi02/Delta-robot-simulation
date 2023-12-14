@@ -9,7 +9,8 @@ root.title("Main Page: IRB 340 Delta Robot Simulation")
 
 # Set the size of the window
 width = 800
-height = 600
+height = 60
+0
 root.geometry(f"{width}x{height}")
 
 def mode1Page():
