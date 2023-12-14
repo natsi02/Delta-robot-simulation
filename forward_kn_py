@@ -1,0 +1,69 @@
+import numpy as np
+from scipy.optimize import fsolve
+
+def forward_kinematics(t1, t2, t3, param):
+    # Parameters
+    r_f, r_e, f, e = param
+
+    # Virtual Joint Positions for the first joint
+    k = (f - e) / (2 * np.sqrt(3))
+    
+    J1 = np.array([0, -k - r_f * np.cos(t1), -r_f * np.sin(t1)])
+    
+    J2 = np.array([((f-e)/(2*np.sqrt(3))+r_f*np.cos(t2))*np.cos(30*np.pi/180),
+                   ((f-e)/(2*np.sqrt(3))+r_f*np.cos(t2))*np.sin(30*np.pi/180),
+                   -r_f*np.sin(t2)])
+    
+    J3 = np.array([-((f-e)/(2*np.sqrt(3))+r_f*np.cos(t3))*np.cos(30*np.pi/180),
+                   ((f-e)/(2*np.sqrt(3))+r_f*np.cos(t3))*np.sin(30*np.pi/180),
+                   -r_f*np.sin(t3)])
+    
+    # J2 = np.array([(k + r_f * np.cos(t2)) * np.cos(30 * np.pi / 180),
+    #                (k + r_f * np.cos(t2)) * np.sin(30 * np.pi / 180),
+    #                -r_f * np.sin(t2)])
+    # J3 = np.array([(-k - r_f * np.cos(t3)) * np.cos(30 * np.pi / 180),
+    #                (k + r_f * np.cos(t3)) * np.sin(30 * np.pi / 180),
+    #                -r_f * np.sin(t3)])
+
+    # Proportional constants for end effector position
+    w1 = np.sum(J1 ** 2)
+    w2 = np.sum(J2 ** 2)
+    w3 = np.sum(J3 ** 2)
+
+    # Calculate Ji positions
+    x1, x2, x3 = J1[0], J2[0], J3[0]
+    y1, y2, y3 = J1[1], J2[1], J3[1]
+    z1, z2, z3 = J1[2], J2[2], J3[2]
+
+    d = (y2 - y1) * x3 - (y3 - y1) * x2
+    a1 = 1 / d * ((z2 - z1) * (y3 - y1) - (z3 - z1) * (y2 - y1))
+    b1 = -1 / (2 * d) * ((w2 - w1) * (y3 - y1) - (w3 - w1) * (y2 - y1))
+    a2 = -1 / d * ((z2 - z1) * x3 - (z3 - z1) * x2)
+    b2 = 1 / (2 * d) * ((w2 - w1) * x3 - (w3 - w1) * x2)
+
+    # Quadratic equation to solve for z
+    a = a1**2 + a2**2 + 1
+    b = 2 * (a1 * b1 + a2 * (b2 - y1) - z1)
+    c = b1**2 + (b2 - y1)**2 + z1**2 - r_e**2
+    z = min(fsolve(lambda z: a * z**2 + b * z + c, 0))
+
+    # Calculate x and y based on z
+    x = lambda z: a1 * z + b1
+    y = lambda z: a2 * z + b2
+
+    # Return position vector
+    return np.array([x(z), y(z), z])
+
+# Example usage:
+# Parameters
+r_f = 3e-2  # Length of upper joint in m
+r_e = 8e-2  # Length of lower joint
+f = 3.7e-2    # Side of Fixed triangle
+e = 2.6e-3    # Side of End effector triangle
+
+# Define param to keep all of parameters
+param = [r_f, r_e, f, e]
+t1_val, t2_val, t3_val = np.radians(3.41664263), np.radians(12.80063359), np.radians(31.74349627)
+
+result = forward_kinematics(t1_val, t2_val, t3_val, param)
+print("End Effector Position:", result)
